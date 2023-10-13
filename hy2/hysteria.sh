@@ -59,13 +59,13 @@ inst_cert(){
     echo ""
     read -rp "请输入选项 [1-3]: " certInput
     if [[ $certInput == 2 ]]; then
-        cert_path="/root/cert.crt"
-        key_path="/root/private.key"
+        cert_path="/usr/cert.crt"
+        key_path="/usr/private.key"
 
-        chmod a+x /root # 让 Hysteria 主程序访问到 /root 目录
+        chmod a+x /usr # 让 Hysteria 主程序访问到 /usr 目录
 
-        if [[ -f /root/cert.crt && -f /root/private.key ]] && [[ -s /root/cert.crt && -s /root/private.key ]] && [[ -f /root/ca.log ]]; then
-            domain=$(cat /root/ca.log)
+        if [[ -f /usr/cert.crt && -f /usr/private.key ]] && [[ -s /usr/cert.crt && -s /usr/private.key ]] && [[ -f /usr/ca.log ]]; then
+            domain=$(cat /usr/ca.log)
             green "检测到原有域名：$domain 的证书，正在应用"
             hy_domain=$domain
         else
@@ -105,14 +105,14 @@ inst_cert(){
                 else
                     bash ~/.acme.sh/acme.sh --issue -d ${domain} --standalone -k ec-256 --insecure
                 fi
-                bash ~/.acme.sh/acme.sh --install-cert -d ${domain} --key-file /root/private.key --fullchain-file /root/cert.crt --ecc
-                if [[ -f /root/cert.crt && -f /root/private.key ]] && [[ -s /root/cert.crt && -s /root/private.key ]]; then
-                    echo $domain > /root/ca.log
+                bash ~/.acme.sh/acme.sh --install-cert -d ${domain} --key-file /usr/private.key --fullchain-file /usr/cert.crt --ecc
+                if [[ -f /usr/cert.crt && -f /usr/private.key ]] && [[ -s /usr/cert.crt && -s /usr/private.key ]]; then
+                    echo $domain > /usr/ca.log
                     sed -i '/--cron/d' /etc/crontab >/dev/null 2>&1
-                    echo "0 0 * * * root bash /root/.acme.sh/acme.sh --cron -f >/dev/null 2>&1" >> /etc/crontab
-                    green "证书申请成功! 脚本申请到的证书 (cert.crt) 和私钥 (private.key) 文件已保存到 /root 文件夹下"
-                    yellow "证书crt文件路径如下: /root/cert.crt"
-                    yellow "私钥key文件路径如下: /root/private.key"
+                    echo "0 0 * * * usr bash /usr/.acme.sh/acme.sh --cron -f >/dev/null 2>&1" >> /etc/crontab
+                    green "证书申请成功! 脚本申请到的证书 (cert.crt) 和私钥 (private.key) 文件已保存到 /usr 文件夹下"
+                    yellow "证书crt文件路径如下: /usr/cert.crt"
+                    yellow "私钥key文件路径如下: /usr/private.key"
                     hy_domain=$domain
                 fi
             else
@@ -275,8 +275,8 @@ EOF
         last_ip=$ip
     fi
 
-    mkdir /root/hy
-    cat << EOF > /root/hy/hy-client.yaml
+    mkdir /usr/hy
+    cat << EOF > /usr/hy/hy-client.yaml
 server: $last_ip:$last_port
 
 auth: $auth_pwd
@@ -300,7 +300,7 @@ transport:
   udp:
     hopInterval: 30s 
 EOF
-    cat << EOF > /root/hy/hy-client.json
+    cat << EOF > /usr/hy/hy-client.json
 {
   "server": "$last_ip:$last_port",
   "auth": "$auth_pwd",
@@ -325,7 +325,7 @@ EOF
   }
 }
 EOF
-    cat <<EOF > /root/hy/clash-meta.yaml
+    cat <<EOF > /usr/hy/clash-meta.yaml
 mixed-port: 7890
 external-controller: 127.0.0.1:9090
 allow-lan: false
@@ -359,7 +359,7 @@ rules:
   - MATCH,Proxy
 EOF
     url="hysteria2://$auth_pwd@$last_ip:$last_port/?insecure=1&sni=$hy_domain#Misaka-Hysteria2"
-    echo $url > /root/hy/url.txt
+    echo $url > /usr/hy/url.txt
 
     systemctl daemon-reload
     systemctl enable hysteria-server
@@ -371,20 +371,20 @@ EOF
     fi
     red "======================================================================================"
     green "Hysteria 2 代理服务安装完成"
-    yellow "Hysteria 2 客户端 YAML 配置文件 hy-client.yaml 内容如下，并保存到 /root/hy/hy-client.yaml"
-    red "$(cat /root/hy/hy-client.yaml)"
-    yellow "Hysteria 2 客户端 JSON 配置文件 hy-client.json 内容如下，并保存到 /root/hy/hy-client.json"
-    red "$(cat /root/hy/hy-client.json)"
-    yellow "Clash Meta 客户端配置文件已保存到 /root/hy/clash-meta.yaml"
-    yellow "Hysteria 2 节点分享链接如下，并保存到 /root/hy/url.txt"
-    red "$(cat /root/hy/url.txt)"
+    yellow "Hysteria 2 客户端 YAML 配置文件 hy-client.yaml 内容如下，并保存到 /usr/hy/hy-client.yaml"
+    red "$(cat /usr/hy/hy-client.yaml)"
+    yellow "Hysteria 2 客户端 JSON 配置文件 hy-client.json 内容如下，并保存到 /usr/hy/hy-client.json"
+    red "$(cat /usr/hy/hy-client.json)"
+    yellow "Clash Meta 客户端配置文件已保存到 /usr/hy/clash-meta.yaml"
+    yellow "Hysteria 2 节点分享链接如下，并保存到 /usr/hy/url.txt"
+    red "$(cat /usr/hy/url.txt)"
 }
 
 unsthysteria(){
     systemctl stop hysteria-server.service >/dev/null 2>&1
     systemctl disable hysteria-server.service >/dev/null 2>&1
     rm -f /lib/systemd/system/hysteria-server.service /lib/systemd/system/hysteria-server@.service
-    rm -rf /usr/local/bin/hysteria /etc/hysteria /root/hy /root/hysteria.sh
+    rm -rf /usr/local/bin/hysteria /etc/hysteria /usr/hy /usr/hysteria.sh
     iptables -t nat -F PREROUTING >/dev/null 2>&1
     netfilter-persistent save >/dev/null 2>&1
 
@@ -432,8 +432,8 @@ changeport(){
     done
 
     sed -i "1s#$oldport#$port#g" /etc/hysteria/config.yaml
-    sed -i "1s#$oldport#$port#g" /root/hy/hy-client.yaml
-    sed -i "2s#$oldport#$port#g" /root/hy/hy-client.json
+    sed -i "1s#$oldport#$port#g" /usr/hy/hy-client.yaml
+    sed -i "2s#$oldport#$port#g" /usr/hy/hy-client.json
 
     stophysteria && starthysteria
 
@@ -449,8 +449,8 @@ changepasswd(){
     [[ -z $passwd ]] && passwd=$(date +%s%N | md5sum | cut -c 1-8)
 
     sed -i "1s#$oldpasswd#$passwd#g" /etc/hysteria/config.yaml
-    sed -i "1s#$oldpasswd#$passwd#g" /root/hy/hy-client.yaml
-    sed -i "3s#$oldpasswd#$passwd#g" /root/hy/hy-client.json
+    sed -i "1s#$oldpasswd#$passwd#g" /usr/hy/hy-client.yaml
+    sed -i "3s#$oldpasswd#$passwd#g" /usr/hy/hy-client.json
 
     stophysteria && starthysteria
 
@@ -462,14 +462,14 @@ changepasswd(){
 change_cert(){
     old_cert=$(cat /etc/hysteria/config.yaml | grep cert | awk -F " " '{print $2}')
     old_key=$(cat /etc/hysteria/config.yaml | grep key | awk -F " " '{print $2}')
-    old_hydomain=$(cat /root/hy/hy-client.yaml | grep sni | awk '{print $2}')
+    old_hydomain=$(cat /usr/hy/hy-client.yaml | grep sni | awk '{print $2}')
 
     inst_cert
 
     sed -i "s!$old_cert!$cert_path!g" /etc/hysteria/config.yaml
     sed -i "s!$old_key!$key_path!g" /etc/hysteria/config.yaml
-    sed -i "6s/$old_hydomain/$hy_domain/g" /root/hy/hy-client.yaml
-    sed -i "5s/$old_hydomain/$hy_domain/g" /root/hy/hy-client.json
+    sed -i "6s/$old_hydomain/$hy_domain/g" /usr/hy/hy-client.yaml
+    sed -i "5s/$old_hydomain/$hy_domain/g" /usr/hy/hy-client.json
 
     stophysteria && starthysteria
 
@@ -508,13 +508,13 @@ changeconf(){
 }
 
 showconf(){
-    yellow "Hysteria 2 客户端 YAML 配置文件 hy-client.yaml 内容如下，并保存到 /root/hy/hy-client.yaml"
-    red "$(cat /root/hy/hy-client.yaml)"
-    yellow "Hysteria 2 客户端 JSON 配置文件 hy-client.json 内容如下，并保存到 /root/hy/hy-client.json"
-    red "$(cat /root/hy/hy-client.json)"
-    yellow "Clash Meta 客户端配置文件已保存到 /root/hy/clash-meta.yaml"
-    yellow "Hysteria 2 节点分享链接如下，并保存到 /root/hy/url.txt"
-    red "$(cat /root/hy/url.txt)"
+    yellow "Hysteria 2 客户端 YAML 配置文件 hy-client.yaml 内容如下，并保存到 /usr/hy/hy-client.yaml"
+    red "$(cat /usr/hy/hy-client.yaml)"
+    yellow "Hysteria 2 客户端 JSON 配置文件 hy-client.json 内容如下，并保存到 /usr/hy/hy-client.json"
+    red "$(cat /usr/hy/hy-client.json)"
+    yellow "Clash Meta 客户端配置文件已保存到 /usr/hy/clash-meta.yaml"
+    yellow "Hysteria 2 节点分享链接如下，并保存到 /usr/hy/url.txt"
+    red "$(cat /usr/hy/url.txt)"
 }
 
 menu() {
