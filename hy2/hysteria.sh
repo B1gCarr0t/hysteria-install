@@ -221,7 +221,8 @@ insthysteria(){
     ${PACKAGE_INSTALL} curl wget sudo qrencode procps iptables-persistent netfilter-persistent
 
     wget -N https://raw.githubusercontent.com/Misaka-blog/hysteria-install/main/hy2/install_server.sh
-    bash install_server.sh
+    chmod +x hysteria.sh
+    ./hysteria.sh
     rm -f install_server.sh
 
     if [[ -f "/usr/local/bin/hysteria" ]]; then
